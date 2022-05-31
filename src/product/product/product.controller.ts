@@ -4,11 +4,32 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { Product } from '../schemas/product.schema';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { EventPattern } from '@nestjs/microservices';
+import {Client, ClientKafka, EventPattern} from "@nestjs/microservices";
+import {microserviceConfig} from "../microserviceConfig";
 
 @Controller()
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  onModuleInit() {
+    const requestPatterns = [
+      'addProduct',
+    ];
+
+    requestPatterns.forEach(pattern => {
+      this.client.subscribeToResponseOf(pattern);
+    });
+  }
+
+  @Client(microserviceConfig)
+  client: ClientKafka;
+
+  @EventPattern('addProduct')
+  async handleSubscription(payload: any) {
+    console.log(payload.value);
+    return payload.value;
+  }
+  
   @Get()
   getProducts(): Promise<Product[]> {
     return this.productService.findAll();
